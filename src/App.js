@@ -1,11 +1,15 @@
 import React, { Component } from 'react'
+import { convert } from 'tabletojson'
+import groupBy from 'lodash/groupBy'
+import sortBy from 'lodash/sortBy'
 import './App.css'
 
 class App extends Component {
   state = {
     login: null,
     readingLogin: true,
-    reservations: [ { user: 'asd' } ]
+    reservationsByDay: null,
+    readingReservations: true
   }
 
   componentDidMount() {
@@ -22,20 +26,37 @@ class App extends Component {
   }
 
   handleReservationsBody(html) {
-    if (html.indexOf && html.indexOf('reservations-table')) {
+    const rootHtml = '<table id="reservations-table"'
+
+    if (html.indexOf && html.indexOf(rootHtml)) {
       this.setState({
         login: true,
         readingLogin: false,
-        // TODO:
-        reservations: [{
-          start: '2019-02-10T16:00:00.000Z',
-          end: '2019-02-10T17:00:00.000Z',
-          user: 'johndoe'
-        }]
+        reservationsByDay: this.parseReservations(html.substring(html.indexOf(rootHtml), html.length))
       })
     } else {
-      throw new Error('not logged in')
+      this.setState({
+        login: false,
+        readingLogin: false
+      })
     }
+  }
+
+  parseReservations(html) {
+    const convertedTables = convert(html)
+    if (!convertedTables.length) return null
+
+    const rawReservations = convertedTables[0]
+    const formattedReservations = rawReservations.map(r => ({
+      day: r['Päivä'],
+      timeslot: r['Aika'],
+      user: r['Varaaja']
+    }))
+
+    const sortedReservations = sortBy(formattedReservations, ['day', 'timeslot'])
+    const reservationsByDay = groupBy(sortedReservations, 'day')
+
+    return reservationsByDay 
   }
 
   login(username, password) {
@@ -56,10 +77,12 @@ class App extends Component {
   }
 
   render() {
+    window.a = this
+
     const {
       login,
       readingLogin,
-      reservations
+      reservationsByDay
     } = this.state
 
     if (readingLogin) {
@@ -70,11 +93,21 @@ class App extends Component {
       return <p>Ladataan...</p>
     }
 
+    if (!reservationsByDay) {
+      return <p>Varausten lukeminen epäonnistui.</p>
+    }
+
+    const days = Object.keys(reservationsByDay)
+
     return (
       <div className="App">
         <header className="App-header" />
-        <h1>Reservations</h1>
-        { reservations.map(r => <p children={ r.user } />) }
+        <h1>Varaukset</h1>
+        { days.map(d => reservationsByDay[d].map(r => (
+          <p>
+            { r.day } | { r.timeslot } | { r.user }
+          </p>
+        ))) }
       </div>
     )
   }

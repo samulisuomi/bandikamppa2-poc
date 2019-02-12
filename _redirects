@@ -1,0 +1,2 @@
+/api/login          http://bandikamppa.satakuntatalo.fi/login.php  200
+/api/reservations   http://bandikamppa.satakuntatalo.fi/reservations.php  200

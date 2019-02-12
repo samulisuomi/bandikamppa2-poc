@@ -1,0 +1,11 @@
+.ReservationsTable table {
+  background-color: #3b5065;
+}
+
+.ReservationsTable td {
+  /* padding: 0; */
+}
+
+.ReservationsTable tr.lighten {
+  background-color: #4e677d;
+}

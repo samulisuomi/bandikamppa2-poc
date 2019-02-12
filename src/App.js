@@ -1,14 +1,17 @@
-import React, { Component } from 'react'
+import React, { PureComponent } from 'react'
+import Container from 'react-bootstrap/Container'
 import { convert } from 'tabletojson'
-import groupBy from 'lodash/groupBy'
 import sortBy from 'lodash/sortBy'
+
 import './App.css'
 
-class App extends Component {
+import ReservationsTable from './ReservationsTable'
+
+export default class App extends PureComponent {
   state = {
-    login: null,
+    login: false,
     readingLogin: true,
-    reservationsByDay: null,
+    reservations: [],
     readingReservations: true
   }
 
@@ -20,19 +23,20 @@ class App extends Component {
       }).catch(() => {
         this.setState({
           login: false,
-          readingLogin: false
+          readingLogin: false,
+          readingReservations: false
         })
       })
   }
 
-  handleReservationsBody(html) {
+  handleReservationsBody = html => {
     const rootHtml = '<table id="reservations-table"'
 
-    if (html.indexOf && html.indexOf(rootHtml)) {
+    if (html.indexOf && html.indexOf(rootHtml) !== -1) {
       this.setState({
         login: true,
         readingLogin: false,
-        reservationsByDay: this.parseReservations(html.substring(html.indexOf(rootHtml), html.length))
+        reservations: this.parseReservations(html.substring(html.indexOf(rootHtml), html.length))
       })
     } else {
       this.setState({
@@ -42,24 +46,22 @@ class App extends Component {
     }
   }
 
-  parseReservations(html) {
+  parseReservations = html => {
     const convertedTables = convert(html)
     if (!convertedTables.length) return null
 
     const rawReservations = convertedTables[0]
     const formattedReservations = rawReservations.map(r => ({
+      id: `${r['Päivä']}-${r['Aika']}`,
       day: r['Päivä'],
       timeslot: r['Aika'],
       user: r['Varaaja']
     }))
 
-    const sortedReservations = sortBy(formattedReservations, ['day', 'timeslot'])
-    const reservationsByDay = groupBy(sortedReservations, 'day')
-
-    return reservationsByDay 
+    return sortBy(formattedReservations, ['day', 'timeslot'])
   }
 
-  login(username, password) {
+  login = (username, password) => {
     let formData = new FormData()
     formData.append('username', username)
     formData.append('password', password)
@@ -71,7 +73,8 @@ class App extends Component {
       }).catch(() => {
         this.setState({
           login: false,
-          readingLogin: false
+          readingLogin: false,
+          readingReservations: false
         })
       })
   }
@@ -82,7 +85,7 @@ class App extends Component {
     const {
       login,
       readingLogin,
-      reservationsByDay
+      reservations
     } = this.state
 
     if (readingLogin) {
@@ -90,27 +93,13 @@ class App extends Component {
     }
 
     if (!login) {
-      return <p>Ladataan...</p>
+      return <h1>Kirjaudu</h1>
     }
-
-    if (!reservationsByDay) {
-      return <p>Varausten lukeminen epäonnistui.</p>
-    }
-
-    const days = Object.keys(reservationsByDay)
 
     return (
-      <div className="App">
-        <header className="App-header" />
-        <h1>Varaukset</h1>
-        { days.map(d => reservationsByDay[d].map(r => (
-          <p>
-            { r.day } | { r.timeslot } | { r.user }
-          </p>
-        ))) }
-      </div>
+      <Container>
+        <ReservationsTable reservations={ reservations || [] }/>
+      </Container>
     )
   }
 }
-
-export default App
